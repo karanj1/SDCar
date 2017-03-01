@@ -1,2 +1,2 @@
-model_checkpoint_path: "lenet6"
-all_model_checkpoint_paths: "lenet6"
+model_checkpoint_path: "lenet7"
+all_model_checkpoint_paths: "lenet7"
