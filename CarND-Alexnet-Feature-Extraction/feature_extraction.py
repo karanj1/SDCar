@@ -41,7 +41,7 @@ output = sess.run(probs, feed_dict={x: [im1, im2]})
 
 # Print Output
 for input_im_ind in range(output.shape[0]):
-    inds = np.argsort(output)[input_im_ind, :]
+    inds = np.argsort(output)[input_im_ind, :]   #argsort : sorting #https://docs.scipy.org/doc/numpy/reference/generated/numpy.argsort.html
     print("Image", input_im_ind)
     for i in range(5):
         print("%s: %.3f" % (sign_names.ix[inds[-1 - i]][1], output[input_im_ind, inds[-1 - i]]))

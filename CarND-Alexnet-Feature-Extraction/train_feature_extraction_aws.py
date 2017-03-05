@@ -22,7 +22,7 @@ labels = tf.placeholder(tf.int64, None)
 resized = tf.image.resize_images(features, (227, 227))
 epochs = 10
 batch_size = 128
-one_hot_y = tf.one_hot(labels, 43)
+one_hot_y = tf.one_hot(labels, 43)      #https://www.tensorflow.org/api_docs/python/tf/one_hot
 
 # TODO: pass placeholder as first argument to `AlexNet`.
 fc7 = AlexNet(resized, feature_extract=True)
@@ -46,7 +46,7 @@ loss_operation = tf.reduce_mean(cross_entropy)
 optimizer = tf.train.AdamOptimizer()
 training_operation = optimizer.minimize(loss_operation)
 
-correct_prediction = tf.equal(tf.argmax(logits, 1), tf.argmax(one_hot_y, 1))
+correct_prediction = tf.equal(tf.argmax(logits, 1), tf.argmax(one_hot_y, 1))  #https://docs.scipy.org/doc/numpy/reference/generated/numpy.argmax.html
 accuracy_operation = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
 
 # TODO: Train and evaluate the feature extraction model.

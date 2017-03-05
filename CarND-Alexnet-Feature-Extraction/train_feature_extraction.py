@@ -22,7 +22,7 @@ labels = tf.placeholder(tf.int64, None)
 resized = tf.image.resize_images(features, (227, 227))
 epochs = 10
 batch_size = 128
-one_hot_y = tf.one_hot(labels, 43)
+one_hot_y = tf.one_hot(labels, 43)		#https://www.tensorflow.org/api_docs/python/tf/one_hot
 
 # TODO: pass placeholder as first argument to `AlexNet`.
 fc7 = AlexNet(resized, feature_extract=True)
