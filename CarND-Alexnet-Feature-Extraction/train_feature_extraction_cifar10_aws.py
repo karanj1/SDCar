@@ -74,7 +74,7 @@ with tf.Session() as sess:
     for i in range(epochs):
         print("EPOCHS: " + format(i) + "\n")
         if i>0 and i%2==0:
-            msg = "EPOCHS: " + format(i) + " and Validation accuracy is: " + format(val_acc)
+            msg = "EPOCHS: " + format(i) + " and Validation accuracy(cifar 10) is: " + format(val_acc)
             send_sms(msg)
         # training
         X_train, y_train = shuffle(X_train, y_train)
@@ -94,4 +94,4 @@ with tf.Session() as session:
     saver.restore(session, tf.train.latest_checkpoint('.'))
     
     test_acc = evaluate(X_test, y_test)
-    print("Test Accuracy = {:.3f}".format(test_acc))
+    print("Test Accuracy for Cifar10 = {:.3f}".format(test_acc))
