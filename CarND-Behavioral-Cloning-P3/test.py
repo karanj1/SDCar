@@ -17,7 +17,7 @@ measurements = []
 for line in lines:
 	source_path = line[0]	#column 0 in csv
 	filename = source_path.split('\\')[-1]	#take filename from whole path
-	current_path = 'data/data/IMG_test/' + filename
+	current_path = 'data/data/IMG/' + filename
 	image = cv2.imread(current_path)
 	image_flipped = np.fliplr(image)
 	images.append(image)
