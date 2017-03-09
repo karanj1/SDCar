@@ -7,7 +7,7 @@ from keras.layers.convolutional import Convolution2D
 from keras.layers.pooling import MaxPooling2D
 
 lines = []
-with open('data/driving_log_test.csv') as csvfile:
+with open('data/data/driving_log.csv') as csvfile:
 	reader = csv.reader(csvfile)
 	for line in reader:
 		lines.append(line)
@@ -17,7 +17,7 @@ measurements = []
 for line in lines:
 	source_path = line[0]	#column 0 in csv
 	filename = source_path.split('\\')[-1]	#take filename from whole path
-	current_path = 'data/IMG_test/' + filename
+	current_path = 'data/data/IMG_test/' + filename
 	image = cv2.imread(current_path)
 	image_flipped = np.fliplr(image)
 	images.append(image)
