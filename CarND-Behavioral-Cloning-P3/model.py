@@ -79,7 +79,7 @@ def Augmentation(row, car_images, steering_angles):
     digitized_center = np.digitize(steering_center,bins)-1   #bin number for steering_center angle for this row
     
     # create adjusted steering measurements for the side camera images
-    correction = 0.20     # this is a parameter to tune
+    correction = 0.25     # this is a parameter to tune
     steering_left = steering_center + correction
     steering_right = steering_center - correction
     
@@ -133,7 +133,7 @@ def Augmentation(row, car_images, steering_angles):
 
 
 
-def generator(samples, batch_size=64):
+def generator(samples, batch_size=128):
     num_samples = int(len(samples)/3)
     while 1: # Loop forever so the generator never terminates
         shuffle(samples)
@@ -156,8 +156,8 @@ def generator(samples, batch_size=64):
 
 
 # compile and train the model using the generator function
-train_generator = generator(train_samples, batch_size=64)
-validation_generator = generator(validation_samples, batch_size=64)
+train_generator = generator(train_samples, batch_size=128)
+validation_generator = generator(validation_samples, batch_size=128)
 
 
 
