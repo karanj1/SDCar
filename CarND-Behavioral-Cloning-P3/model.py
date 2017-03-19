@@ -111,7 +111,7 @@ def Augmentation(row, car_images, steering_angles):
         keep_probs_left = 1./(hist[digitized_left]/threshold)
     else:
         keep_probs_left = 1
-    if select_prob > (1-keep_probs_left):
+    if select_prob > (1-keep_probs_left) and steering_left<0.99:
         img_left =  process_image(np.asarray(Image.open(path+row[1])))
         img_left_flipped = np.fliplr(img_left)
         car_images.append(img_left)
@@ -123,7 +123,7 @@ def Augmentation(row, car_images, steering_angles):
         keep_probs_right = 1./(hist[digitized_right]/threshold)
     else:
         keep_probs_right = 1
-    if select_prob > (1-keep_probs_right):
+    if select_prob > (1-keep_probs_right) and steering_right>-0.99:
         img_right =  process_image(np.asarray(Image.open(path + row[2])))
         img_right_flipped = np.fliplr(img_right)
         car_images.append(img_right)
