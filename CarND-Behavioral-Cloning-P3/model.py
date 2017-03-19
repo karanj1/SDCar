@@ -13,7 +13,7 @@ from keras.layers.advanced_activations import ELU
 import math
 import matplotlib.pyplot as plt
 # Visualizations will be shown in the notebook.
-%matplotlib inline
+#%matplotlib inline
 
 
 samples = []
