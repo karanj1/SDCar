@@ -240,20 +240,8 @@ print(model.summary())
 '''Model run'''
 model.compile(loss='mse', optimizer=Adam(lr=1e-4))
 #model.fit(X_train, y_train,validation_split=0.2, shuffle=True, nb_epoch=7)
-history_object = model.fit_generator(train_generator, samples_per_epoch= \
+model.fit_generator(train_generator, samples_per_epoch= \
             len(train_samples)*2, validation_data=validation_generator, \
             nb_val_samples=len(validation_samples)*2, nb_epoch=8, verbose=1)          #https://keras.io/models/sequential/#fit_generator
-
-### print the keys contained in the history object
-print(history_object.history.keys())
-
-### plot the training and validation loss for each epoch
-plt.plot(history_object.history['loss'])
-plt.plot(history_object.history['val_loss'])
-plt.title('model mean squared error loss')
-plt.ylabel('mean squared error loss')
-plt.xlabel('epoch')
-plt.legend(['training set', 'validation set'], loc='upper right')
-plt.show()
 
 model.save('model.h5')
