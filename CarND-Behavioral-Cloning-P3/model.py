@@ -17,11 +17,12 @@ import matplotlib.pyplot as plt
 
 
 samples = []
-
-csv_path = ['data/data/driving_log.csv', 'data/ds1/driving_log.csv']
-
-for j in range(2):
-    if j==2:
+#csv_path = ['data/data/driving_log.csv', 'data/ds1/driving_log.csv', 'data/DSReverse/driving_log.csv']
+csv_path = ['data/data/driving_log.csv', 'data/ds1/driving_log.csv', 'data/DSReverse/driving_log.csv', \
+            'data/data/data_pat/track1_central/driving_log.csv', 'data/data/data_pat/track1_recovery/driving_log.csv', \
+            'data/data/data_pat/track1_recovery_reverse/driving_log.csv', 'data/data/data_pat/track1_reverse/driving_log.csv']
+for j in range(7):
+    if j==8:
         # 0 = my own data, 1 = Udacity supplied data , any other no = use both dataset
         print('not using dataset ', j)
         continue
@@ -32,109 +33,149 @@ for j in range(2):
              # skip it if ~0 speed - not representative of driving behavior
             if float(line[6]) < 0.1 :
                 continue
-            if float(line[3])>0.01 or float(line[3])<-0.01:
+            if (float(line[3])>0.01 and float(line[3])<0.99) or (float(line[3])>-0.99 and float(line[3])<-0.01):
                 samples.append(line)
             else:
                 select_prob = np.random.random()
-                if select_prob > 0.80:
+                if select_prob > 0.85:
                     samples.append(line)
-
+                
+            #samples.append(line)
+        
+        
 train_samples, validation_samples = train_test_split(samples, test_size=0.2)
 a= np.array(samples)
 
-# print a histogram to see which steering angle ranges are most overrepresented
-a_angles = a[:,3].astype(np.float)
-num_bins = 25
-avg_samples_per_bin = len(a)/num_bins
-hist, bins = np.histogram(a_angles, num_bins)
-width = 0.8 * (bins[1] - bins[0])
-center = (bins[:-1] + bins[1:]) / 2
-plt.bar(center, hist, align='center', width=width)
-plt.plot((np.min(a_angles), np.max(a_angles)), (avg_samples_per_bin, avg_samples_per_bin), 'k-')
 
-hist = np.concatenate((hist, [1]))  # because no of bins are 26 (0 to 25), but no of hist were 25.(see print(bins, hist) below)
-print(bins, hist)
-
-
-def process_image(image):
+def read_image(row):
     
-    shape = image.shape
-    # note: numpy arrays are (row, col)!
-    image = image[math.floor(shape[0]/4):shape[0]-25, 0:shape[1]]
-    image = cv2.resize(image, (64, 64))
-    
-    #image2 = np.zeros(image.shape, dtype='u1')
-    #image2 = brightness_process_image(image, image2)
-    
-    return image
-
-
-
-
-threshold = avg_samples_per_bin * 0.5
-
-
-def Augmentation(row, car_images, steering_angles):
     steering_center = float(row[3])
-    digitized_center = np.digitize(steering_center,bins)-1   #bin number for steering_center angle for this row
-    
     # create adjusted steering measurements for the side camera images
-    correction = 0.25     # this is a parameter to tune
-    steering_left = steering_center + correction
-    steering_right = steering_center - correction
-    
-    digitized_left = np.digitize(steering_left,bins)-1    #bin number for steering_left angle for this row
-    digitized_right = np.digitize(steering_right,bins)-1   #bin number for steering_right angle for this row
-    
-    select_prob = np.random.random()
+    offset=1.0 
+    dist=10.0
+    correction = offset/dist * 360/( 2*np.pi) / 25.0     #17# this is a parameter to tune
     
     # read in images from center, left and right cameras
     path = 'data/data/' # fill in the path to your training IMG directory
     
+    camera = np.random.choice(['center', 'left', 'right'], p=[0.3,0.35,0.35])
+    
+    if camera == "center" :    
+        img = np.asarray(Image.open(path+row[0]))
+        steering = steering_center
+    elif camera == "left" :    
+        img = np.asarray(Image.open(path+row[1]))
+        steering = steering_center + correction
+    elif camera == "right" :    
+        img = np.asarray(Image.open(path + row[2]))
+        steering = steering_center - correction
+    else:
+         print ('Invalid camera or path :',camera, row )
+    
+    return img, steering
+
+
+def transform_image(image,steering,ang_range,shear_range,trans_range):
+# Rotation
+    ang_rot = np.random.uniform(ang_range)-ang_range/2
+    rows,cols,ch = image.shape    
+    Rot_M = cv2.getRotationMatrix2D((cols/2,rows/2),ang_rot,1)
+# Translation
+    tr_x = trans_range*np.random.uniform()-trans_range/2
+    tr_y = trans_range*np.random.uniform()-trans_range/2
+    Trans_M = np.float32([[1,0,tr_x],[0,1,tr_y]])
+# Shear
+    rows,cols,ch = image.shape
+    dx = np.random.randint(-shear_range,shear_range+1)
+    #    print('dx',dx)
+    random_point = [cols/2+dx,rows/2]
+    pts1 = np.float32([[0,rows],[cols,rows],[cols/2,rows/2]])
+    pts2 = np.float32([[0,rows],[cols,rows],random_point])
+    M = cv2.getAffineTransform(pts1,pts2)
+    dsteering = dx/(rows/2) * 360/(2*np.pi*25.0) / 6.0    
+    steering +=dsteering
+        
+    image = cv2.warpAffine(image,Rot_M,(cols,rows))
+    image = cv2.warpAffine(image,Trans_M,(cols,rows))
+    image = cv2.warpAffine(image,M,(cols,rows),borderMode=1)
+    
+    return image,steering
     
     
-    # It balances histogram, if image is in the bin having no of images greater than threshold ....(see above 2 cells)
-    #1./(hist[digitized_center]/threshold) is equivalent to  threshold/hist[digitized_center] (i.e 100/500 = 0.2 = keep_probs)
-    if hist[digitized_center] > threshold:   #hist[digitized_center] will give no of images in that bin
-        keep_probs_center = 1./(hist[digitized_center]/threshold)
+def crop_image(image, cam_angle=0.0, train = True):
+    
+    tx_lower=-20
+    tx_upper=20
+    ty_lower=-10
+    ty_upper=10
+    shape = image.shape
+    steering = 0.0
+    
+    # note: numpy arrays are (row, col)!
+    
+    #tx and ty are random no of pixels # only for training data
+    if train:
+        tx= np.random.randint(tx_lower,tx_upper+1)
+        ty= np.random.randint(ty_lower,ty_upper+1)
+        # the steering variable needs to be updated to counteract the shift 
+        if tx != 0:
+            steering = tx/(tx_upper-tx_lower)/3.0   #tx can be +ve or -ve (between -20 and 20)
     else:
-        keep_probs_center = 1
-    if select_prob > (1-keep_probs_center):
-        img_center =  process_image(np.asarray(Image.open(path+row[0])))
-        img_center_flipped = np.fliplr(img_center)
-        car_images.append(img_center)
-        car_images.append(img_center_flipped)
-        steering_angles.append(steering_center)
-        steering_angles.append(-steering_center)
-        
-    if hist[digitized_left] > threshold:
-        keep_probs_left = 1./(hist[digitized_left]/threshold)
-    else:
-        keep_probs_left = 1
-    if select_prob > (1-keep_probs_left) and steering_left<0.99:
-        img_left =  process_image(np.asarray(Image.open(path+row[1])))
-        img_left_flipped = np.fliplr(img_left)
-        car_images.append(img_left)
-        car_images.append(img_left_flipped)
-        steering_angles.append(steering_left)
-        steering_angles.append(-steering_left)
-        
-    if hist[digitized_right] > threshold:
-        keep_probs_right = 1./(hist[digitized_right]/threshold)
-    else:
-        keep_probs_right = 1
-    if select_prob > (1-keep_probs_right) and steering_right>-0.99:
-        img_right =  process_image(np.asarray(Image.open(path + row[2])))
-        img_right_flipped = np.fliplr(img_right)
-        car_images.append(img_right)
-        car_images.append(img_right_flipped)
-        steering_angles.append(steering_right)
-        steering_angles.append(-steering_right)
+        tx,ty=0,0   #for  validation data, turn randomness off
+
+    
+    #image cropping top:1/4th of height, bottom: 25px, left:20px, right:20px
+    image = image[math.floor(shape[0]/4)+ty:shape[0]-25+ty, 20+tx:shape[1]-20+tx]
+    image = cv2.resize(image, (64, 64))
+    cam_angle += steering
+    
+    return image,cam_angle
+
+def random_brightness(image):
+    image1 = cv2.cvtColor(image,cv2.COLOR_RGB2HSV)
+    random_bright = 0.8 + 0.4*(2*np.random.uniform()-1.0)    
+    image1[:,:,2] = image1[:,:,2]*random_bright
+    image1 = cv2.cvtColor(image1,cv2.COLOR_HSV2RGB)
+    return image1
+
+def flip_image(image,cam_angle):
+    img_flipped = np.fliplr(image)
+    cam_angle_flipped = -cam_angle
+    
+    return img_flipped,cam_angle_flipped
+
+
+def Augmentation(row, car_images=[], steering_angles=[], augment=False):
+    
+    image, cam_angle = read_image(row)
+    
+    image, cam_angle = transform_image(image, cam_angle, 2, 10, 2)
+    
+    image, cam_angle = crop_image(image, cam_angle, train=augment)
+    
+    image = random_brightness(image)
+    
+    # add images and angles to data set
+    car_images.append(image)
+    steering_angles.append(cam_angle)
+    
+    coin=np.random.randint(0,2)
+    if coin==0 or coin==1:    
+        image_flipped, cam_angle_flipped = flip_image(image,cam_angle)
+        # add images and angles to data set
+        car_images.append(image_flipped)
+        steering_angles.append(cam_angle_flipped)
+    
+    
+    return car_images, steering_angles
 
 
 
-def generator(samples, batch_size=128):
-    num_samples = int(len(samples)/3)
+
+######################################################################
+
+def generator(samples, augment=True, batch_size=256):
+    num_samples = int(len(samples)/2.7)
     while 1: # Loop forever so the generator never terminates
         shuffle(samples)
         for offset in range(0, num_samples, batch_size):
@@ -144,7 +185,10 @@ def generator(samples, batch_size=128):
             steering_angles = []
 
             for row in batch_samples:
-                Augmentation(row, car_images, steering_angles)
+                if augment==True:
+                    car_images, steering_angles = Augmentation(row, car_images, steering_angles)
+                else:
+                    car_images, steering_angles = Augmentation(row, car_images, steering_angles)
 
             # trim image to only see section with road
             X_train = np.array(car_images)
@@ -153,26 +197,26 @@ def generator(samples, batch_size=128):
             yield sklearn.utils.shuffle(X_train, y_train)
 
 
-
-
 # compile and train the model using the generator function
 train_generator = generator(train_samples, batch_size=128)
 validation_generator = generator(validation_samples, batch_size=128)
 
 
-
+'''Model design'''
 model = Sequential()
+# Normalize
 model.add(Lambda(lambda x: x/255.0 - 0.5, input_shape=(64,64,3)))
+#model.add(Convolution2D(3,1,1,border_mode='valid', name='conv0'))
 # layer 1 output shape is 32x32x32
-model.add(Convolution2D(32, 5, 5, input_shape=(64, 64, 3), subsample=(2, 2), border_mode="same"))
+model.add(Convolution2D(16, 5, 5, input_shape=(64, 64, 3), subsample=(2, 2), border_mode="same"))
 model.add(ELU())
 # layer 2 output shape is 15x15x16
-model.add(Convolution2D(16, 3, 3, subsample=(1, 1), border_mode="valid"))
+model.add(Convolution2D(32, 3, 3, subsample=(2, 2), border_mode="valid"))
 model.add(ELU())
 model.add(Dropout(.4))
 model.add(MaxPooling2D((2, 2), border_mode='valid'))
-# layer 3 output shape is 12x12x16
-model.add(Convolution2D(16, 3, 3, subsample=(1, 1), border_mode="valid"))
+# layer 3 output shape is 13x13x16
+model.add(Convolution2D(64, 3, 3, subsample=(1, 1), border_mode="valid"))
 model.add(ELU())
 model.add(Dropout(.4))
 # Flatten the output
@@ -187,12 +231,26 @@ model.add(ELU())
 # Finally a single output, since this is a regression problem
 model.add(Dense(1))
 
+print(model.summary())
 
 
-model.compile(loss='mse', optimizer='adam')
+'''Model run'''
+model.compile(loss='mse', optimizer=Adam(lr=1e-4))
 #model.fit(X_train, y_train,validation_split=0.2, shuffle=True, nb_epoch=7)
-model.fit_generator(train_generator, samples_per_epoch= \
+history_object = model.fit_generator(train_generator, samples_per_epoch= \
             len(train_samples)*2, validation_data=validation_generator, \
-            nb_val_samples=len(validation_samples)*2, nb_epoch=15)         #https://keras.io/models/sequential/#fit_generator
+            nb_val_samples=len(validation_samples)*2, nb_epoch=8, verbose=1)          #https://keras.io/models/sequential/#fit_generator
 
-model.save('model_test.h5')
+### print the keys contained in the history object
+print(history_object.history.keys())
+
+### plot the training and validation loss for each epoch
+plt.plot(history_object.history['loss'])
+plt.plot(history_object.history['val_loss'])
+plt.title('model mean squared error loss')
+plt.ylabel('mean squared error loss')
+plt.xlabel('epoch')
+plt.legend(['training set', 'validation set'], loc='upper right')
+plt.show()
+
+model.save('model.h5')
