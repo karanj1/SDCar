@@ -10,6 +10,9 @@ from keras.layers.core import Dense, Flatten, Activation, Dropout, Lambda
 from keras.layers.convolutional import Convolution2D, Cropping2D
 from keras.layers.pooling import MaxPooling2D
 from keras.layers.advanced_activations import ELU
+from keras import regularizers
+from keras.regularizers import l2, activity_l2
+from keras.optimizers import Adam
 import math
 import matplotlib.pyplot as plt
 # Visualizations will be shown in the notebook.
